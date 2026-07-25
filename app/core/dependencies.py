@@ -6,15 +6,15 @@ from sqlalchemy.orm import Session
 from app.core.security import decoder_access_token
 from app.database import get_db
 from app.models.utilisateur import Utilisateur
-from app.repositories import utilisateur_repository
+from app.repositories import token_repository, utilisateur_repository
 
 bearer_scheme = HTTPBearer()
 
 
-def get_current_user(
+def get_token_payload(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
-) -> Utilisateur:
+) -> dict:
     erreur_auth = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Identifiants invalides",
@@ -22,15 +22,28 @@ def get_current_user(
     )
     try:
         payload = decoder_access_token(credentials.credentials)
-        utilisateur_id = payload.get("sub")
-        if utilisateur_id is None:
-            raise erreur_auth
     except jwt.PyJWTError:
         raise erreur_auth
 
-    utilisateur = utilisateur_repository.get_by_id(db, int(utilisateur_id))
-    if utilisateur is None:
+    if payload.get("sub") is None or payload.get("jti") is None:
         raise erreur_auth
+    if token_repository.est_revoque(db, payload["jti"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Ce token a été invalidé (déconnexion). Reconnectez-vous.",
+        )
+    return payload
+
+
+def get_current_user(
+    payload: dict = Depends(get_token_payload),
+    db: Session = Depends(get_db),
+) -> Utilisateur:
+    utilisateur = utilisateur_repository.get_by_id(db, int(payload["sub"]))
+    if utilisateur is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants invalides")
+    if not utilisateur.actif:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ce compte a été verrouillé")
     return utilisateur
 
 

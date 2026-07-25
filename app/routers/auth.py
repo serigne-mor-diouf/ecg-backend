@@ -1,9 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_administrateur, get_current_user
+from app.core.dependencies import bearer_scheme, get_current_administrateur, get_current_user
 from app.database import get_db
 from app.models.utilisateur import Utilisateur
+from app.schemas.mot_de_passe_schema import (
+    ChangerMotDePasseRequest,
+    MotDePasseOublieRequest,
+    ReinitialiserMotDePasseRequest,
+)
 from app.schemas.token_schema import LoginRequest, Token
 from app.schemas.utilisateur_schema import (
     AdministrateurCreate,
@@ -48,6 +54,47 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     return Token(access_token=token, utilisateur=utilisateur)
 
 
+@router.post("/logout")
+def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    _: Utilisateur = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    auth_service.deconnecter(db, credentials.credentials)
+    return {"detail": "Déconnexion réussie"}
+
+
 @router.get("/me", response_model=UtilisateurResponse)
 def me(utilisateur: Utilisateur = Depends(get_current_user)):
     return utilisateur
+
+
+@router.post("/mot-de-passe/changer")
+def changer_mot_de_passe(
+    data: ChangerMotDePasseRequest,
+    utilisateur: Utilisateur = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        auth_service.changer_mot_de_passe(db, utilisateur, data.ancien_mot_de_passe, data.nouveau_mot_de_passe)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"detail": "Mot de passe modifié avec succès"}
+
+
+@router.post("/mot-de-passe/oublie")
+def mot_de_passe_oublie(data: MotDePasseOublieRequest, db: Session = Depends(get_db)):
+    try:
+        auth_service.demander_reinitialisation(db, data.email)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"detail": "Un code de validation a été envoyé à cet email"}
+
+
+@router.post("/mot-de-passe/reinitialiser")
+def reinitialiser_mot_de_passe(data: ReinitialiserMotDePasseRequest, db: Session = Depends(get_db)):
+    try:
+        auth_service.reinitialiser_mot_de_passe(db, data.code, data.nouveau_mot_de_passe)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"detail": "Mot de passe réinitialisé avec succès"}

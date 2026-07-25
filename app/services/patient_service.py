@@ -20,7 +20,7 @@ def modifier_patient(db: Session, patient_id: int, patient: PatientCreate):
     updated = patient_repository.update_patient(db, patient_id, patient)
     if not updated:
         raise ValueError("Patient introuvable")
-    return updated
+    return updated 
 
 def supprimer_patient(db: Session, patient_id: int):
     deleted = patient_repository.delete_patient(db, patient_id)

@@ -99,7 +99,14 @@ DEFAULT_ADMIN_EMAIL=admin@ecg.com
 DEFAULT_ADMIN_PASSWORD=Admin1234
 DEFAULT_ADMIN_NOM=Admin
 DEFAULT_ADMIN_PRENOM=Systeme
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=<adresse gmail utilisée pour l'envoi>
+MAIL_PASSWORD=<mot de passe d'application Gmail>
+MAIL_SENDER=<adresse affichée comme expéditeur>
 ```
+
+Pour `MAIL_PASSWORD`, utiliser un **mot de passe d'application** Gmail (pas le mot de passe du compte) : à générer depuis les paramètres de sécurité du compte Google (nécessite la validation en 2 étapes activée).
 
 Générer une clé secrète JWT :
 ```bash
@@ -140,17 +147,25 @@ Rôles et accès :
 - `POST /auth/register/medecin` — public (inscription libre d'un médecin).
 - `POST /auth/register/administrateur` — **protégé**, uniquement accessible par un administrateur déjà connecté.
 - `GET /auth/me` — nécessite un token valide, retourne l'utilisateur courant.
+- `POST /auth/logout` — invalide immédiatement le token courant (liste noire en base), avant même son expiration naturelle.
+- `POST /auth/mot-de-passe/changer` — utilisateur connecté, change son mot de passe (ancien + nouveau requis).
+- `POST /auth/mot-de-passe/oublie` — public. Si l'email n'existe pas : **404** explicite. S'il existe : génère un code de validation à 6 chiffres (valide 30 min) et l'**envoie par email réel** (SMTP, voir `MAIL_*` dans `.env`).
+- `POST /auth/mot-de-passe/reinitialiser` — public, `{email, code, nouveau_mot_de_passe}` : vérifie le code reçu par email puis met à jour le mot de passe.
+- `PATCH /administration/utilisateurs/{id}/verrouiller` / `.../deverrouiller` — **protégé**, réservé aux administrateurs. Un compte verrouillé (`actif=false`) ne peut plus se connecter, et ses tokens déjà émis sont rejetés au prochain appel.
 
 ## Fichiers stratégiques
 
 | Fichier | Rôle |
 |---|---|
-| `app/main.py` | Point d'entrée : crée les tables, déclenche le seed admin, monte les routers |
+| `app/main.py` | Point d'entrée : crée les tables, applique les migrations, déclenche le seed admin, monte les routers |
 | `app/core/config.py` | Source unique de vérité pour la configuration (lit `.env` via pydantic-settings) |
-| `app/core/security.py` | Hash bcrypt des mots de passe, création/décodage des JWT |
-| `app/core/dependencies.py` | `get_current_user`, `get_current_medecin`, `get_current_administrateur` — à utiliser via `Depends(...)` pour protéger une route |
+| `app/core/security.py` | Hash bcrypt des mots de passe, création/décodage des JWT (avec `jti` unique par token), génération de tokens de réinitialisation |
+| `app/core/dependencies.py` | `get_current_user`, `get_current_medecin`, `get_current_administrateur` — à utiliser via `Depends(...)` pour protéger une route ; vérifie aussi qu'un token n'est pas révoqué et que le compte est actif |
 | `app/core/startup.py` | Logique de création du compte admin par défaut |
+| `app/core/migrate.py` | Migration légère (ADD COLUMN IF NOT EXISTS) en attendant l'introduction d'Alembic |
+| `app/core/mail.py` | Envoi d'emails réels via SMTP (utilisé pour le code de réinitialisation de mot de passe) |
 | `app/database.py` | Connexion PostgreSQL (`engine`, `SessionLocal`, `get_db`) |
+| `app/models/token_revoque.py` | Table `tokens_revoques` — liste noire des tokens invalidés par logout |
 | `.env` | Secrets et configuration locale — **ne jamais committer** |
 | `requirements.txt` | Dépendances exactes du projet (généré via `pip freeze`) |
 | `scripts/seed_admin.py` | Création manuelle d'un compte admin (utile en complément du seed automatique) |

@@ -14,6 +14,7 @@ class UtilisateurCreate(UtilisateurBase):
 class UtilisateurResponse(UtilisateurBase):
     id: int
     role: str
+    actif: bool
 
     class Config:
         from_attributes = True

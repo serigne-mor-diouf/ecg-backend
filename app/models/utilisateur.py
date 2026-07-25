@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from app.database import Base
 
 
@@ -18,6 +18,10 @@ class Utilisateur(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     mot_de_passe_hash = Column(String, nullable=False)
     role = Column(String, nullable=False)
+    actif = Column(Boolean, nullable=False, default=True, server_default="true")
+
+    reset_token = Column(String, nullable=True, unique=True)
+    reset_token_expire = Column(DateTime(timezone=True), nullable=True)
 
     type = Column(String, nullable=False)
 

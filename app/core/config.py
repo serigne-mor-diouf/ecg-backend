@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     default_admin_nom: str = "Admin"
     default_admin_prenom: str = "Systeme"
 
+    mail_host: str = "smtp.gmail.com"
+    mail_port: int = 587
+    mail_username: str
+    mail_password: str
+    mail_sender: str
+
     class Config:
         env_file = ".env"
         case_sensitive = False
