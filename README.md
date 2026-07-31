@@ -176,6 +176,9 @@ Rôles et accès :
 # Lancer le serveur en mode développement (rechargement automatique)
 venv\Scripts\python.exe -m uvicorn app.main:app --reload
 
+.\venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+
 # Créer un administrateur manuellement (en plus du seed automatique)
 venv\Scripts\python.exe scripts/seed_admin.py <email> <mot_de_passe> <nom> <prenom>
 
