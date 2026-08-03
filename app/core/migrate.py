@@ -7,6 +7,9 @@ _STATEMENTS = [
     "ALTER TABLE utilisateurs ADD COLUMN IF NOT EXISTS actif BOOLEAN NOT NULL DEFAULT TRUE",
     "ALTER TABLE utilisateurs ADD COLUMN IF NOT EXISTS reset_token VARCHAR",
     "ALTER TABLE utilisateurs ADD COLUMN IF NOT EXISTS reset_token_expire TIMESTAMPTZ",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS fichier_joint VARCHAR",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS adresse VARCHAR",
+    "ALTER TABLE patients ADD COLUMN IF NOT EXISTS telephone VARCHAR",
 ]
 
 

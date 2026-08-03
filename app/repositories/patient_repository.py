@@ -15,6 +15,18 @@ def get_patient_by_id(db: Session, patient_id: int) -> Patient | None:
 def get_all_patients(db: Session) -> list[Patient]:
     return db.query(Patient).all()
 
+def rechercher_patients(db: Session, terme: str) -> list[Patient]:
+    motif = f"%{terme}%"
+    return db.query(Patient).filter(
+        (Patient.nom.ilike(motif)) | (Patient.prenom.ilike(motif))
+    ).all()
+
+def set_fichier_joint(db: Session, patient: Patient, chemin_fichier: str) -> Patient:
+    patient.fichier_joint = chemin_fichier
+    db.commit()
+    db.refresh(patient)
+    return patient
+
 def update_patient(db: Session, patient_id: int, patient: PatientCreate) -> Patient | None:
     db_patient = get_patient_by_id(db, patient_id)
     if not db_patient:

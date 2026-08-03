@@ -172,6 +172,7 @@ Rôles et accès :
 
 ## Commandes utiles
 
+## http://localhost:8000/docs
 ```bash
 # Lancer le serveur en mode développement (rechargement automatique)
 venv\Scripts\python.exe -m uvicorn app.main:app --reload

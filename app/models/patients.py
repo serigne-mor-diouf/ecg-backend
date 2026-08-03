@@ -10,3 +10,6 @@ class Patient(Base):
     age = Column(Integer)
     sexe = Column(String)
     antecedents = Column(String, nullable=True)
+    adresse = Column(String, nullable=True)
+    telephone = Column(String, nullable=True)
+    fichier_joint = Column(String, nullable=True)  # chemin du document médical attaché (optionnel)
